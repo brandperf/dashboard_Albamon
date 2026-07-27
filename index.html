@@ -1632,7 +1632,22 @@ function vTrend(v){
     draw();
   }
   function draw(){
-    const shown=opts.filter(s=>!vs.hidden.has(s.label));
+    let shown=opts.filter(s=>!vs.hidden.has(s.label));
+    /* A6 브랜드 인지도: 꺾은선에서 특정 브랜드의 비-데이터(평탄 0) 구간을 끊어 표시(라인만, 표/다른 차트는 원본 유지)
+       당근 ≤22.6, 동네알바 ≤22.9, 쑨 ≥25.1 구간은 다른 데이터와 연결하지 않음 */
+    if(vs.ct==='line'&&(b.name||'').startsWith('A6')){
+      const cuts={'당근':{maxYM:monthLabelToYM('22년 9월')},'동네알바':{maxYM:monthLabelToYM('22년 11월')},'쑨':{minYM:monthLabelToYM('25년 1월')}};
+      shown=shown.map(s=>{
+        const cut=cuts[s.label]; if(!cut)return s;
+        return {...s, values:s.values.map((val,i)=>{
+          const ym=monthLabelToYM(b.months[i]);
+          if(ym==null)return val;
+          if(cut.maxYM!=null&&ym<=cut.maxYM)return null;
+          if(cut.minYM!=null&&ym>=cut.minYM)return null;
+          return val;
+        })};
+      });
+    }
     const nt=document.getElementById('nt');
     if(vs.ct==='pie'||vs.ct==='radar'){
       drawByType(vs.ct,b.months,shown,{unitLabel:'%',monthIdx:vs.month,percentLike:true,stackMode:vs.stackMode});
